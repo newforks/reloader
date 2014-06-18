@@ -1,6 +1,15 @@
-{application, reloader, [{description, "Reloader"},
-                         %% This should always correspond with the version
-                         %% number of the mirrored MochiWeb source.
-                         {vsn, "2.5.0"},
-                         {env, []},
-                         {applications, [kernel, stdlib]}]}.
+% -*- mode: erlang -*-
+{application, reloader,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { reloader_app, []}},
+  {env, [
+         {check_time, 1} %% 单位是s，可以通过启动的时候替换该默认值
+        ]}
+ ]}.

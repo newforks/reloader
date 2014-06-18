@@ -10,13 +10,20 @@
 -include_lib("kernel/include/file.hrl").
 
 -behaviour(gen_server).
+
 -export([start/0, start_link/0]).
 -export([stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([all_changed/0]).
 -export([is_changed/1]).
 -export([reload_modules/1]).
--record(state, {last, tref}).
+-export([set_check_time/1]).
+
+-record(state, {
+          last, 
+          tref,
+          check_time
+         }).
 
 %% External API
 
@@ -35,13 +42,20 @@ start_link() ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
-%% gen_server callbacks
+set_check_time(Time) ->
+    gen_server:cast(?MODULE, {set_check_time, Time}).
 
 %% @spec init([]) -> {ok, State}
 %% @doc gen_server init, opens the server in an initial state.
 init([]) ->
-    {ok, TRef} = timer:send_interval(timer:seconds(1), doit),
-    {ok, #state{last = stamp(), tref = TRef}}.
+    %% {ok, TRef} = timer:send_interval(timer:seconds(1), doit),
+    CheckTime = reloader_check_time(),
+    TimerRef = erlang:send_after(CheckTime, self(), doit),
+    {ok, #state{
+            last = stamp(),
+            tref = TimerRef,
+            check_time = CheckTime
+           }}.
 
 %% @spec handle_call(Args, From, State) -> tuple()
 %% @doc gen_server callback.
@@ -52,24 +66,41 @@ handle_call(_Req, _From, State) ->
 
 %% @spec handle_cast(Cast, State) -> tuple()
 %% @doc gen_server callback.
-handle_cast(_Req, State) ->
+handle_cast({set_check_time, Time}, State) ->
+    {noreply, State#state{
+                check_time = Time*1000
+               }};
+handle_cast(_Req, State) ->    
     {noreply, State}.
 
 %% @spec handle_info(Info, State) -> tuple()
 %% @doc gen_server callback.
-handle_info(doit, State) ->
+handle_info(doit, #state{
+                     check_time = CheckTime
+                    } = State) ->
+    TimerRef = erlang:send_after(CheckTime, self(), doit),
     Now = stamp(),
-    _ = doit(State#state.last, Now),
-    {noreply, State#state{last = Now}};
-handle_info(_Info, State) ->
+    try
+        _ = doit(State#state.last, Now)
+    catch
+        _:R ->
+            error_logger:error_msg(
+              "reload failed R:~w Stack:~p~n",[R, erlang:get_stacktrace()])
+    end,
+    {noreply, State#state{
+                last = Now,
+                tref = TimerRef
+               }};
+handle_info(Info, State) ->
+    error_logger:warning_msg("unknow info ~p~n", [Info]),
     {noreply, State}.
 
 %% @spec terminate(Reason, State) -> ok
 %% @doc gen_server termination callback.
 terminate(_Reason, State) ->
-    {ok, cancel} = timer:cancel(State#state.tref),
+    erlang:cancel_timer(State#state.tref),
+    %% {ok, cancel} = timer:cancel(State#state.tref),
     ok.
-
 
 %% @spec code_change(_OldVsn, State, _Extra) -> State
 %% @doc gen_server code_change callback (trivial).
@@ -119,33 +150,20 @@ doit(From, To) ->
              %% warning here, but I'd want to limit it to just once.
              gone;
          {error, Reason} ->
-             io:format("Error reading ~s's file info: ~p~n",
-                       [Filename, Reason]),
+             error_logger:error_msg("Error reading ~s's file info: ~p~n",
+                                    [Filename, Reason]),
              error
      end || {Module, Filename} <- code:all_loaded(), is_list(Filename)].
 
 reload(Module) ->
-    io:format("Reloading ~p ...", [Module]),
+    error_logger:info_msg("Reloading ~p ...", [Module]),
     code:purge(Module),
     case code:load_file(Module) of
         {module, Module} ->
-            io:format(" ok.~n"),
-            case erlang:function_exported(Module, test, 0) of
-                true ->
-                    io:format(" - Calling ~p:test() ...", [Module]),
-                    case catch Module:test() of
-                        ok ->
-                            io:format(" ok.~n"),
-                            reload;
-                        Reason ->
-                            io:format(" fail: ~p.~n", [Reason]),
-                            reload_but_test_failed
-                    end;
-                false ->
-                    reload
-            end;
+            error_logger:info_msg("reload ~w ok.~n", [Module]),
+            reload;
         {error, Reason} ->
-            io:format(" fail: ~p.~n", [Reason]),
+            error_logger:error_msg("reload fail: ~p.~n", [Reason]),
             error
     end.
 
@@ -153,9 +171,10 @@ reload(Module) ->
 stamp() ->
     erlang:localtime().
 
-%%
-%% Tests
-%%
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--endif.
+reloader_check_time() ->
+    case application:get_env(reloader, check_time) of
+        undefined -> 
+            1000;
+        {ok, Value} -> 
+            Value*1000
+    end.
