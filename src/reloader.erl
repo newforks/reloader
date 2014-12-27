@@ -16,7 +16,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([all_changed/0]).
 -export([is_changed/1]).
--export([reload_modules/1]).
+-export([reload_modules/1, reload_all_changed/0]).
 -export([set_check_time/1]).
 
 -record(state, {
@@ -47,15 +47,13 @@ set_check_time(Time) ->
 
 %% @spec init([]) -> {ok, State}
 %% @doc gen_server init, opens the server in an initial state.
-init([]) ->
-    %% {ok, TRef} = timer:send_interval(timer:seconds(1), doit),
-    CheckTime = reloader_check_time(),
+init([CheckTime]) ->
     TimerRef = erlang:send_after(CheckTime, self(), doit),
     {ok, #state{
             last = stamp(),
             tref = TimerRef,
             check_time = CheckTime
-           }}.
+           }}.        
 
 %% @spec handle_call(Args, From, State) -> tuple()
 %% @doc gen_server callback.
@@ -128,6 +126,9 @@ is_changed(M) ->
             false
     end.
 
+reload_all_changed() ->
+    reload_modules(all_changed()).
+
 %% Internal API
 
 module_vsn({M, Beam, _Fn}) ->
@@ -171,10 +172,3 @@ reload(Module) ->
 stamp() ->
     erlang:localtime().
 
-reloader_check_time() ->
-    case application:get_env(reloader, check_time) of
-        undefined -> 
-            1000;
-        {ok, Value} -> 
-            Value*1000
-    end.
