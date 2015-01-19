@@ -30,7 +30,7 @@
 %% @spec start_link() -> ServerRet
 %% @doc Start the reloader.
 start() ->
-    gen_server:start({local, ?MODULE}, ?MODULE, [1], []).
+    gen_server:start({local, ?MODULE}, ?MODULE, [2000], []).
 
 start_link(CheckTime) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [CheckTime], []).
