@@ -20,6 +20,7 @@
 
 % 手工执行命令
 -export([set_check_time/1]).
+-export([reload/0]).
 
 -record(state, {
           last, 
@@ -45,8 +46,14 @@ start_link(CheckTime) ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
-set_check_time(Time) ->
-    gen_server:cast(?MODULE, {set_check_time, Time}).
+set_check_time(Time) when is_integer(Time) andalso Time >= 0 ->
+    gen_server:cast(?MODULE, {set_check_time, Time});
+set_check_time(_Time)  ->
+  error_logger:error_msg("check time must be integer and lager than 0 ~n").
+
+reload() ->
+  self() ! doit.
+
 
 %% @spec init([] | [CheckTime]) -> {ok, State}
 %% @doc 不执行定时

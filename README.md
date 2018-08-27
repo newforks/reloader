@@ -7,7 +7,39 @@
 1. 修改env选项:check_time，单位是秒
 2. 通过命令 ``reloader:set_check_time/1`` 动态修改间隔时间
 
+##定时与非定时模式
 
+定时:
+
+    % 每1秒执行一次定时
+    {check_time, 1}
+
+非定时:
+
+    % 关闭定时
+    {check_time, 0}
+
+##set_check_time/1命令
+
+定时间隔由1秒修改为2秒:
+
+    reloader:set_check_time(2).
+    
+关闭定时:
+
+    reloader:set_check_time(0).
+
+重新打开定时,并设置为5秒间隔:
+
+    reloader:set_check_time(5).
+
+##非定时模式加载
+
+命令:
+
+    reloader:reload().
+    % 注意:
+    %    加载的文件是从上一次加载到现在这段时间修改过的文件
 
 ##Installation
 
@@ -15,7 +47,7 @@
 
     {reloader, {git, "https://github.com/newforks/reloader", "master"}}
 
-之后执行 `rebar get-deps`接着 `rebar compile`.
+之后执行 `rebar3 get-deps`接着 `rebar3 compile`.
 
 ##Usage
 
