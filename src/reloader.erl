@@ -74,6 +74,24 @@ handle_call(_Req, _From, State) ->
 
 %% @spec handle_cast(Cast, State) -> tuple()
 %% @doc gen_server callback.
+% 没有改变
+handle_cast({set_check_time, Time}, #state{check_time = Time}=State) ->
+  {noreply, State};
+% 由原来定时改为不定时
+handle_cast({set_check_time, 0}, #state{tref = TimerRef}=State) ->
+  erlang:cancel_timer(TimerRef),
+  {noreply, State#state{
+    tref = undefined,
+    check_time = 0
+  }};
+% 由原来不定时改为定时
+handle_cast({set_check_time, Time}, #state{check_time = 0}=State) ->
+  TimerRef = erlang:send_after(Time, self(), doit),
+  {noreply, State#state{
+    tref = TimerRef,
+    check_time = Time*1000
+  }};
+% 定时时间变化
 handle_cast({set_check_time, Time}, State) ->
     {noreply, State#state{
                 check_time = Time*1000

@@ -1,13 +1,19 @@
 #Erlang Reloader
 
 本项目是基于[the MochiWeb reloader](https://github.com/mochi/mochiweb/blob/master/src/reloader.erl).
-它可以监控每个beam文件的变更，从而进行加载，做法比较粗暴，每隔一段时间检查有哪些beam是需要重新加载。这个时间之前是写死在代码，我将其放在state里面，并且可以动态去更改它，也可以通过app的env来设置。同时，我将io:format换成了error_logger，这样方便线上项目知道reloader有没有正常工作。使用本项目的话，就不需要依赖mochiweb任何文件了。
+它可以监控每个beam文件的变更，从而进行加载，每隔一段时间检查有哪些beam是需要重新加载。
+间隔时间可以通过以下两种方式修改:
+
+1. 修改env选项:check_time，单位是秒
+2. 通过命令 ``reloader:set_check_time/1`` 动态修改间隔时间
+
+
 
 ##Installation
 
 在你的`rebar.config`添加:
 
-    {reloader, ".*", {git, "https://github.com/roowe/reloader", "master"}}
+    {reloader, {git, "https://github.com/newforks/reloader", "master"}}
 
 之后执行 `rebar get-deps`接着 `rebar compile`.
 
