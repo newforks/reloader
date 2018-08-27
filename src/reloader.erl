@@ -11,12 +11,14 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, start/0]).
+-export([start_link/1, start_link/0, start/0]).
 -export([stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([all_changed/0]).
 -export([is_changed/1]).
 -export([reload_modules/1, reload_all_changed/0]).
+
+% 手工执行命令
 -export([set_check_time/1]).
 
 -record(state, {
@@ -32,6 +34,9 @@
 start() ->
     gen_server:start({local, ?MODULE}, ?MODULE, [2000], []).
 
+start_link() ->
+  gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
 start_link(CheckTime) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [CheckTime], []).
 
@@ -43,8 +48,15 @@ stop() ->
 set_check_time(Time) ->
     gen_server:cast(?MODULE, {set_check_time, Time}).
 
-%% @spec init([]) -> {ok, State}
-%% @doc gen_server init, opens the server in an initial state.
+%% @spec init([] | [CheckTime]) -> {ok, State}
+%% @doc 不执行定时
+init([]) ->
+  {ok, #state{
+    last = stamp(),
+    tref = undefined,
+    check_time = 0
+  }};
+%% @doc 执行定时
 init([CheckTime]) ->
     TimerRef = erlang:send_after(CheckTime, self(), doit),
     {ok, #state{
@@ -74,7 +86,6 @@ handle_cast(_Req, State) ->
 handle_info(doit, #state{
                      check_time = CheckTime
                     } = State) ->
-    TimerRef = erlang:send_after(CheckTime, self(), doit),
     Now = stamp(),
     try
         _ = doit(State#state.last, Now)
@@ -83,10 +94,16 @@ handle_info(doit, #state{
             error_logger:error_msg(
               "reload failed R:~w Stack:~p~n",[R, erlang:get_stacktrace()])
     end,
+    case CheckTime of
+      0 ->
+        TimerRef=undefined;
+      _ ->
+        TimerRef = erlang:send_after(CheckTime, self(), doit),
+    end,
     {noreply, State#state{
-                last = Now,
-                tref = TimerRef
-               }};
+      last = Now,
+      tref = TimerRef
+    }};
 handle_info(Info, State) ->
     error_logger:warning_msg("unknow info ~p~n", [Info]),
     {noreply, State}.
@@ -166,6 +183,31 @@ reload(Module) ->
             error
     end.
 
+% @todo 加载并运行单元测试
+reloadandtest(Module) ->
+  io:format("Reloading ~p ...", [Module]),
+  code:purge(Module),
+  case code:load_file(Module) of
+    {module, Module} ->
+      io:format(" ok.~n"),
+      case erlang:function_exported(Module, test, 0) of
+        true ->
+          io:format(" - Calling ~p:test() ...", [Module]),
+          case catch Module:test() of
+            ok ->
+              io:format(" ok.~n"),
+              reload;
+            Reason ->
+              io:format(" fail: ~p.~n", [Reason]),
+              reload_but_test_failed
+          end;
+        false ->
+          reload
+      end;
+    {error, Reason} ->
+      io:format(" fail: ~p.~n", [Reason]),
+      error
+  end.
 
 stamp() ->
     erlang:localtime().

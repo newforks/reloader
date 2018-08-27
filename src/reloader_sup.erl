@@ -27,9 +27,9 @@ start_link() ->
 init([]) ->
     case application:get_env(reloader, check_time) of
         undefined ->
-            {ok, { {one_for_one, 5, 10}, []}};                 
+            {ok, { {one_for_one, 5, 10}, [?CHILD(reloader, [], worker)]}};
         {ok, undefined} ->
-            {ok, { {one_for_one, 5, 10}, []}};
+            {ok, { {one_for_one, 5, 10}, [?CHILD(reloader, [], worker)]}};
         {ok, Value} -> 
             {ok, { {one_for_one, 5, 10}, [?CHILD(reloader, [Value*1000], worker)]}}
     end.
