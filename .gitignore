@@ -1,3 +1,5 @@
 ebin
 .idea
 reloader.iml
+_build/
+rebar.lock

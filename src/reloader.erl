@@ -123,7 +123,7 @@ handle_info(doit, #state{
       0 ->
         TimerRef=undefined;
       _ ->
-        TimerRef = erlang:send_after(CheckTime, self(), doit),
+        TimerRef = erlang:send_after(CheckTime, self(), doit)
     end,
     {noreply, State#state{
       last = Now,
@@ -137,7 +137,7 @@ handle_info(Info, State) ->
 %% @doc gen_server termination callback.
 terminate(_Reason, #state{
                       tref = undefined
-                    }=State) ->
+                    }) ->
     ok;
 terminate(_Reason, State) ->
   erlang:cancel_timer(State#state.tref),
@@ -213,30 +213,30 @@ reload(Module) ->
     end.
 
 % @todo 加载并运行单元测试
-reloadandtest(Module) ->
-  io:format("Reloading ~p ...", [Module]),
-  code:purge(Module),
-  case code:load_file(Module) of
-    {module, Module} ->
-      io:format(" ok.~n"),
-      case erlang:function_exported(Module, test, 0) of
-        true ->
-          io:format(" - Calling ~p:test() ...", [Module]),
-          case catch Module:test() of
-            ok ->
-              io:format(" ok.~n"),
-              reload;
-            Reason ->
-              io:format(" fail: ~p.~n", [Reason]),
-              reload_but_test_failed
-          end;
-        false ->
-          reload
-      end;
-    {error, Reason} ->
-      io:format(" fail: ~p.~n", [Reason]),
-      error
-  end.
+%%reloadandtest(Module) ->
+%%  io:format("Reloading ~p ...", [Module]),
+%%  code:purge(Module),
+%%  case code:load_file(Module) of
+%%    {module, Module} ->
+%%      io:format(" ok.~n"),
+%%      case erlang:function_exported(Module, test, 0) of
+%%        true ->
+%%          io:format(" - Calling ~p:test() ...", [Module]),
+%%          case catch Module:test() of
+%%            ok ->
+%%              io:format(" ok.~n"),
+%%              reload;
+%%            Reason ->
+%%              io:format(" fail: ~p.~n", [Reason]),
+%%              reload_but_test_failed
+%%          end;
+%%        false ->
+%%          reload
+%%      end;
+%%    {error, Reason} ->
+%%      io:format(" fail: ~p.~n", [Reason]),
+%%      error
+%%  end.
 
 stamp() ->
     erlang:localtime().
