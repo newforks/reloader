@@ -135,10 +135,14 @@ handle_info(Info, State) ->
 
 %% @spec terminate(Reason, State) -> ok
 %% @doc gen_server termination callback.
+terminate(_Reason, #state{
+                      tref = undefined
+                    }=State) ->
+    ok;
 terminate(_Reason, State) ->
-    erlang:cancel_timer(State#state.tref),
-    %% {ok, cancel} = timer:cancel(State#state.tref),
-    ok.
+  erlang:cancel_timer(State#state.tref),
+  %% {ok, cancel} = timer:cancel(State#state.tref),
+  ok.
 
 %% @spec code_change(_OldVsn, State, _Extra) -> State
 %% @doc gen_server code_change callback (trivial).
