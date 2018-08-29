@@ -13,6 +13,8 @@
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 -define(CHILD(I, Args, Type), {I, {I, start_link, Args}, permanent, 5000, Type, [I]}).
 
+-define(SERVER, reloader_server).
+
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -27,10 +29,10 @@ start_link() ->
 init([]) ->
     case application:get_env(reloader, check_time) of
         undefined ->
-            {ok, { {one_for_one, 5, 10}, [?CHILD(reloader, [], worker)]}};
+            {ok, { {one_for_one, 5, 10}, [?CHILD(?SERVER, [], worker)]}};
         {ok, undefined} ->
-            {ok, { {one_for_one, 5, 10}, [?CHILD(reloader, [], worker)]}};
+            {ok, { {one_for_one, 5, 10}, [?CHILD(?SERVER, [], worker)]}};
         {ok, Value} -> 
-            {ok, { {one_for_one, 5, 10}, [?CHILD(reloader, [Value*1000], worker)]}}
+            {ok, { {one_for_one, 5, 10}, [?CHILD(?SERVER, [Value*1000], worker)]}}
     end.
 
