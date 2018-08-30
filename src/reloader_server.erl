@@ -26,23 +26,55 @@
   check_time
 }).
 
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Starts the server
+%%
+%% @end
+%%--------------------------------------------------------------------
+-spec(start_link() ->
+  {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 %% External API
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+
+-spec(start_link(integer()) ->
+  {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link(CheckTime) ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [CheckTime], []).
 
 
-%% @spec init([] | [CheckTime]) -> {ok, State}
-%% @doc 不执行定时
+%%%===================================================================
+%%% gen_server callbacks
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Initializes the server
+%%
+%% @spec init(Args) -> {ok, State} |
+%%                     {ok, State, Timeout} |
+%%                     ignore |
+%%                     {stop, Reason}
+%% @end
+%%--------------------------------------------------------------------
+-spec(init(Args :: term()) ->
+  {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term()} | ignore).
+%% 不执行定时
 init([]) ->
   {ok, #state{
     last = stamp(),
     tref = undefined,
     check_time = 0
   }};
-%% @doc 执行定时
+%% 执行定时
 init([CheckTime]) ->
   TimerRef = erlang:send_after(CheckTime, self(), doit),
   {ok, #state{
@@ -51,13 +83,35 @@ init([CheckTime]) ->
     check_time = CheckTime
   }}.
 
-%% @spec handle_call(Args, From, State) -> tuple()
-%% @doc gen_server callback.
-handle_call(_Req, _From, State) ->
-  {reply, {error, badrequest}, State}.
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling call messages
+%%
+%% @end
+%%--------------------------------------------------------------------
+-spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
+    State :: #state{}) ->
+  {reply, Reply :: term(), NewState :: #state{}} |
+  {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
+  {noreply, NewState :: #state{}} |
+  {noreply, NewState :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
+  {stop, Reason :: term(), NewState :: #state{}}).
+handle_call(_Request, _From, State) ->
+  {reply, ok, State}.
 
-%% @spec handle_cast(Cast, State) -> tuple()
-%% @doc gen_server callback.
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling cast messages
+%%
+%% @end
+%%--------------------------------------------------------------------
+-spec(handle_cast(Request :: term(), State :: #state{}) ->
+  {noreply, NewState :: #state{}} |
+  {noreply, NewState :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #state{}}).
 % 没有改变
 handle_cast({set_check_time, Time}, #state{check_time = Time}=State) ->
   {noreply, State};
@@ -83,8 +137,21 @@ handle_cast({set_check_time, Time}, State) ->
 handle_cast(_Req, State) ->
   {noreply, State}.
 
-%% @spec handle_info(Info, State) -> tuple()
-%% @doc gen_server callback.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling all non call/cast messages
+%%
+%% @spec handle_info(Info, State) -> {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, State}
+%% @end
+%%--------------------------------------------------------------------
+-spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
+  {noreply, NewState :: #state{}} |
+  {noreply, NewState :: #state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #state{}}).
 handle_info(doit, #state{
                     check_time = CheckTime
                   } = State) ->
@@ -110,8 +177,20 @@ handle_info(Info, State) ->
   error_logger:warning_msg("unknow info ~p~n", [Info]),
   {noreply, State}.
 
-%% @spec terminate(Reason, State) -> ok
-%% @doc gen_server termination callback.
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% This function is called by a gen_server when it is about to
+%% terminate. It should be the opposite of Module:init/1 and do any
+%% necessary cleaning up. When it returns, the gen_server terminates
+%% with Reason. The return value is ignored.
+%%
+%% @spec terminate(Reason, State) -> void()
+%% @end
+%%--------------------------------------------------------------------
+-spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
+    State :: #state{}) -> term()).
+%% gen_server termination callback.
 terminate(_Reason, #state{
                       tref = undefined
                   }) ->
@@ -121,23 +200,37 @@ terminate(_Reason, State) ->
   %% {ok, cancel} = timer:cancel(State#state.tref),
   ok.
 
-%% @spec code_change(_OldVsn, State, _Extra) -> State
-%% @doc gen_server code_change callback (trivial).
-code_change(_Vsn, State, _Extra) ->
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Convert process state when code is changed
+%%
+%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
+%% @end
+%%--------------------------------------------------------------------
+-spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
+    Extra :: term()) ->
+  {ok, NewState :: #state{}} | {error, Reason :: term()}).
+code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
-%% @spec reload_modules([atom()]) -> [{module, atom()} | {error, term()}]
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+-spec reload_modules([atom()]) -> [{module, atom()} | {error, term()}].
 %% @doc code:purge/1 and code:load_file/1 the given list of modules in order,
 %%      return the results of code:load_file/1.
 reload_modules(Modules) ->
   [begin code:purge(M), code:load_file(M) end || M <- Modules].
 
-%% @spec all_changed() -> [atom()]
+-spec all_changed() -> [atom()].
 %% @doc Return a list of beam modules that have changed.
 all_changed() ->
   [M || {M, Fn} <- code:all_loaded(), is_list(Fn), is_changed(M)].
 
-%% @spec is_changed(atom()) -> boolean()
+-spec is_changed(atom()) -> boolean().
 %% @doc true if the loaded module is a beam with a vsn attribute
 %%      and does not match the on-disk beam file, returns false otherwise.
 is_changed(M) ->
