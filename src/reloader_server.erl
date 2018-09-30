@@ -289,7 +289,7 @@ reload(Module) ->
   code:purge(Module),
   case code:load_file(Module) of
     {module, Module} ->
-      io:format("[ok].~n", [Module]),
+      io:format("[ok].~n"),
       reload;
     {error, Reason} ->
       io:format("[fail]: ~p.~n", [Reason]),
