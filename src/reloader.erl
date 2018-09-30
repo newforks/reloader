@@ -39,7 +39,7 @@ set_check_time(_Time)  ->
   error_logger:error_msg("check time must be integer and lager than 0 ~n").
 
 reload() ->
-  ?SERVER ! doit.
+  ?SERVER ! doitonce.
 
 status() ->
   gen_server:call(?SERVER, status).

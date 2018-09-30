@@ -176,6 +176,18 @@ handle_info(doit, #state{
     last = Now,
     tref = TimerRef
   }};
+handle_info(doitonce, State) ->
+  Now = stamp(),
+  try
+    _ = doit(State#state.last, Now)
+  catch
+    _:R ->
+      error_logger:error_msg(
+        "reload failed R:~w Stack:~p~n",[R, erlang:get_stacktrace()])
+  end,
+  {noreply, State#state{
+    last = Now
+  }};
 handle_info(Info, State) ->
   error_logger:warning_msg("unknow info ~p~n", [Info]),
   {noreply, State}.
