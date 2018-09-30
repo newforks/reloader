@@ -163,8 +163,7 @@ handle_info(doit, #state{
     _ = doit(State#state.last, Now)
   catch
     _:R ->
-      error_logger:error_msg(
-        "reload failed R:~w Stack:~p~n",[R, erlang:get_stacktrace()])
+      io:format("reload failed R:~w Stack:~p~n",[R, erlang:get_stacktrace()])
   end,
   case CheckTime of
     0 ->
@@ -280,20 +279,20 @@ doit(From, To) ->
        %% warning here, but I'd want to limit it to just once.
        gone;
      {error, Reason} ->
-       error_logger:error_msg("Error reading ~s's file info: ~p~n",
+       io:format("Error reading ~s's file info: ~p~n",
          [Filename, Reason]),
        error
    end || {Module, Filename} <- code:all_loaded(), is_list(Filename)].
 
 reload(Module) ->
-  error_logger:info_msg("Reloading ~p ...", [Module]),
+  io:format("Reloading ~p ...", [Module]),
   code:purge(Module),
   case code:load_file(Module) of
     {module, Module} ->
-      error_logger:info_msg("reload ~w ok.~n", [Module]),
+      io:format("reload ~w ok.~n", [Module]),
       reload;
     {error, Reason} ->
-      error_logger:error_msg("reload fail: ~p.~n", [Reason]),
+      io:format("reload fail: ~p.~n", [Reason]),
       error
   end.
 

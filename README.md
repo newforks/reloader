@@ -7,6 +7,13 @@
 1. 修改env选项:check_time，单位是秒
 2. 通过命令 ``reloader:set_check_time/1`` 动态修改间隔时间
 
+## 状态查看
+
+    erl> {Delay, Date} = reloader:status().
+    % 说明:
+    % Delay: 多少毫秒执行一次(为0或undefined表示手动)
+    % Date: 上次执行时间
+
 ## 定时与非定时模式
 
 定时:

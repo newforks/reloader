@@ -36,7 +36,7 @@ stop() ->
 set_check_time(Time) when is_integer(Time) andalso Time >= 0 ->
     gen_server:cast(?SERVER, {set_check_time, Time});
 set_check_time(_Time)  ->
-  error_logger:error_msg("check time must be integer and lager than 0 ~n").
+  io:format("[error]check time must be integer and lager than 0 ~n").
 
 reload() ->
   ?SERVER ! doitonce.
