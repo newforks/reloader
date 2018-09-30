@@ -98,6 +98,9 @@ init([CheckTime]) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
+handle_call(status, _From, State) ->
+  Reply = {State#state.check_time, State#state.last},
+  {reply, Reply, State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 

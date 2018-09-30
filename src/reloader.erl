@@ -10,6 +10,9 @@
 
 -export([start/0, stop/0]).
 
+% 状态查看
+-export([status/0]).
+
 % 手工执行命令
 -export([set_check_time/1]).
 -export([reload/0]).
@@ -38,3 +41,5 @@ set_check_time(_Time)  ->
 reload() ->
   ?SERVER ! doit.
 
+status() ->
+  gen_server:call(?SERVER, status).
