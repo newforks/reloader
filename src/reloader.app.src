@@ -1,7 +1,7 @@
 % -*- mode: erlang -*-
 {application, reloader,
  [
-  {description, ""},
+  {description, "For reload file when updated and compiled"},
   {vsn, "1.1"},
   {registered, []},
   {applications, [

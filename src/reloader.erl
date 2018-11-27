@@ -33,13 +33,41 @@ start() ->
 stop() ->
   application:stop(?MODULE).
 
-set_check_time(Time) when is_integer(Time) andalso Time >= 0 ->
-    gen_server:cast(?SERVER, {set_check_time, Time});
-set_check_time(_Time)  ->
+
+
+%% @doc Set check time
+set_check_time(Time) ->
+  set_check_time(Time, whereis(?SERVER)).
+
+set_check_time(_, undefined) ->
+  io:format("reloader is not started~n");
+set_check_time(Time, _) when is_integer(Time) andalso Time >= 0 ->
+  gen_server:cast(?SERVER, {set_check_time, Time});
+set_check_time(_Time, _)  ->
   io:format("[error]check time must be integer and lager than 0 ~n").
 
+
+
+%% @doc Manual reload file
 reload() ->
+  reload(whereis(?SERVER)).
+
+reload(undefined) ->
+  io:format("reloader is not started~n"),
+  ok;
+reload(_IsAlived) ->
   ?SERVER ! doitonce.
 
+
+%% @doc Get reloader status
 status() ->
+  status(whereis(?SERVER)).
+
+status(undefined) ->
+  io:format("reloader is not started~n"),
+  ok;
+status(_IsAlived) ->
   gen_server:call(?SERVER, status).
+
+
+

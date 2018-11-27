@@ -74,4 +74,11 @@ After recompiling `nuclear_ant_server.erl`:
     =INFO REPORT==== 18-Jun-2014::17:47:01 ===
     reload reloader ok.
 
+注意::
 
+
+  erl -mode embedded
+    1.interactive:默认
+    初使只有部分code被加载,剩下code在被使用时动态加载
+    2.embedded:
+    启动时加载所有modules
