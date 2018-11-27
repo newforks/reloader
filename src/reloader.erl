@@ -53,8 +53,7 @@ reload() ->
   reload(whereis(?SERVER)).
 
 reload(undefined) ->
-  io:format("reloader is not started~n"),
-  ok;
+  io:format("reloader is not started~n");
 reload(_IsAlived) ->
   ?SERVER ! doitonce.
 
@@ -64,8 +63,7 @@ status() ->
   status(whereis(?SERVER)).
 
 status(undefined) ->
-  io:format("reloader is not started~n"),
-  ok;
+  io:format("reloader is not started~n");
 status(_IsAlived) ->
   gen_server:call(?SERVER, status).
 
