@@ -313,10 +313,10 @@ set_check_time(Time, #state{check_time = 0}=State) ->
     tref = TimerRef,
     check_time = Time*1000
   },
-  {io_lib:format("set timer: ~p seconds", [Time]), NewState};
+  {lists:flatten(io_lib:format("set timer: ~p seconds", [Time])), NewState};
 % 定时时间变化
 set_check_time(Time,  State) ->
   NewState = State#state{
     check_time = Time*1000
   },
-  {io_lib:format("set timer: ~p seconds", [Time]), NewState}.
+  {lists:flatten(io_lib:format("set timer: ~p seconds", [Time])), NewState}.
