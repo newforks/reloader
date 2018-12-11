@@ -65,7 +65,7 @@ init([CheckTime]) ->
                0 ->
                  undefined ;
                _Other ->
-                 erlang:send_after(CheckTime, self(), doit)
+                 erlang:send_after(CheckTime*1000, self(), doit)
   end,
   {ok, #state{
     last = stamp(),
@@ -89,11 +89,11 @@ init([CheckTime]) ->
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
 handle_call(status, _From, State) ->
-  Reply = {State#state.check_time, State#state.last},
+  Reply = {{check_time, State#state.check_time}, {last_reload, State#state.last}},
   {reply, Reply, State};
 handle_call({set_check_time, Time}, _From, State) ->
-  {Reply, NewState} = set_check_time(Time, State),
-  {reply, Reply, NewState};
+  NewState = set_check_time(Time, State),
+  {reply, ok, NewState};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 %%--------------------------------------------------------------------
@@ -139,7 +139,7 @@ handle_info(doit, #state{
     0 ->
       TimerRef=undefined;
     _ ->
-      TimerRef = erlang:send_after(CheckTime, self(), doit)
+      TimerRef = erlang:send_after(CheckTime*1000, self(), doit)
   end,
   {noreply, State#state{
     last = Now,
@@ -295,9 +295,10 @@ reload(Module) ->
 stamp() ->
   erlang:localtime().
 
-% 没有改变
-set_check_time(Time, #state{check_time = Time}=State) ->
-  {"none has been changed", State};
+%%% 没有改变 @todo
+%%set_check_time(Time, #state{check_time = Time}=State) ->
+%%  io:format("none has been changed~n"),
+%%  State;
 % 由原来定时改为不定时
 set_check_time(0, #state{tref = TimerRef}=State) ->
   erlang:cancel_timer(TimerRef),
@@ -305,18 +306,21 @@ set_check_time(0, #state{tref = TimerRef}=State) ->
     tref = undefined,
     check_time = 0
   },
-  {"canceled the timer", NewState};
+  io:format("canceled the timer~n"),
+  NewState;
 % 由原来不定时改为定时
 set_check_time(Time, #state{check_time = 0}=State) ->
-  TimerRef = erlang:send_after(Time, self(), doit),
+  TimerRef = erlang:send_after(Time*1000, self(), doit),
   NewState = State#state{
     tref = TimerRef,
-    check_time = Time*1000
+    check_time = Time
   },
-  {lists:flatten(io_lib:format("set timer: ~p seconds", [Time])), NewState};
+  io:format("set timer: ~p seconds", [Time]),
+  NewState;
 % 定时时间变化
 set_check_time(Time,  State) ->
   NewState = State#state{
-    check_time = Time*1000
+    check_time = Time
   },
-  {lists:flatten(io_lib:format("set timer: ~p seconds", [Time])), NewState}.
+  io:format("set timer: ~p seconds", [Time]),
+  NewState.

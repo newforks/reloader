@@ -31,6 +31,6 @@ init([]) ->
         undefined ->
             {ok, { {one_for_one, 5, 10}, [?CHILD(?SERVER, [0], worker)]}};
         {ok, Value} -> 
-            {ok, { {one_for_one, 5, 10}, [?CHILD(?SERVER, [Value*1000], worker)]}}
+            {ok, { {one_for_one, 5, 10}, [?CHILD(?SERVER, [Value], worker)]}}
     end.
 
