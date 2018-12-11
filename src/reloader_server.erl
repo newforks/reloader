@@ -295,10 +295,10 @@ reload(Module) ->
 stamp() ->
   erlang:localtime().
 
-%%% 没有改变 @todo
-%%set_check_time(Time, #state{check_time = Time}=State) ->
-%%  io:format("none has been changed~n"),
-%%  State;
+% 没有改变
+set_check_time(Time, #state{check_time = Time}=State) ->
+  io:format("none has been changed~n"),
+  State;
 % 由原来定时改为不定时
 set_check_time(0, #state{tref = TimerRef}=State) ->
   erlang:cancel_timer(TimerRef),
