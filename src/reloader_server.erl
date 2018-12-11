@@ -13,7 +13,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, start_link/0]).
+-export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([all_changed/0]).
 -export([is_changed/1]).
@@ -36,13 +36,6 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link() ->
-  {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-%% External API
-start_link() ->
-  gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-
 -spec(start_link(integer()) ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link(CheckTime) ->
@@ -67,16 +60,13 @@ start_link(CheckTime) ->
 -spec(init(Args :: term()) ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
-%% 不执行定时
-init([]) ->
-  {ok, #state{
-    last = stamp(),
-    tref = undefined,
-    check_time = 0
-  }};
-%% 执行定时
 init([CheckTime]) ->
-  TimerRef = erlang:send_after(CheckTime, self(), doit),
+  TimerRef = case CheckTime of
+               0 ->
+                 undefined ;
+               _Other ->
+                 erlang:send_after(CheckTime, self(), doit)
+  end,
   {ok, #state{
     last = stamp(),
     tref = TimerRef,
@@ -101,9 +91,11 @@ init([CheckTime]) ->
 handle_call(status, _From, State) ->
   Reply = {State#state.check_time, State#state.last},
   {reply, Reply, State};
+handle_call({set_check_time, Time}, _From, State) ->
+  {Reply, NewState} = set_check_time(Time, State),
+  {reply, Reply, NewState};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
-
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -115,28 +107,6 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-% 没有改变
-handle_cast({set_check_time, Time}, #state{check_time = Time}=State) ->
-  {noreply, State};
-% 由原来定时改为不定时
-handle_cast({set_check_time, 0}, #state{tref = TimerRef}=State) ->
-  erlang:cancel_timer(TimerRef),
-  {noreply, State#state{
-    tref = undefined,
-    check_time = 0
-  }};
-% 由原来不定时改为定时
-handle_cast({set_check_time, Time}, #state{check_time = 0}=State) ->
-  TimerRef = erlang:send_after(Time, self(), doit),
-  {noreply, State#state{
-    tref = TimerRef,
-    check_time = Time*1000
-  }};
-% 定时时间变化
-handle_cast({set_check_time, Time}, State) ->
-  {noreply, State#state{
-    check_time = Time*1000
-  }};
 handle_cast(_Req, State) ->
   {noreply, State}.
 
@@ -325,3 +295,28 @@ reload(Module) ->
 stamp() ->
   erlang:localtime().
 
+% 没有改变
+set_check_time(Time, #state{check_time = Time}=State) ->
+  {"none has been changed", State};
+% 由原来定时改为不定时
+set_check_time(0, #state{tref = TimerRef}=State) ->
+  erlang:cancel_timer(TimerRef),
+  NewState = State#state{
+    tref = undefined,
+    check_time = 0
+  },
+  {"canceled the timer", NewState};
+% 由原来不定时改为定时
+set_check_time(Time, #state{check_time = 0}=State) ->
+  TimerRef = erlang:send_after(Time, self(), doit),
+  NewState = State#state{
+    tref = TimerRef,
+    check_time = Time*1000
+  },
+  {io_lib:format("set timer: ~p seconds", [Time]), NewState};
+% 定时时间变化
+set_check_time(Time,  State) ->
+  NewState = State#state{
+    check_time = Time*1000
+  },
+  {io_lib:format("set timer: ~p seconds", [Time]), NewState}.

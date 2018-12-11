@@ -10,6 +10,6 @@
                  ]},
   {mod, { reloader_app, []}},
   {env, [
-         {check_time, 5} %% 单位是s，可以通过启动的时候替换该默认值，如果是undefined的话，不自动每隔一段时间检测
+         {check_time, 0} %% 单位是s，可以通过启动的时候替换该默认值，如果是0或undefined的话，不自动每隔一段时间检测
         ]}
  ]}.
